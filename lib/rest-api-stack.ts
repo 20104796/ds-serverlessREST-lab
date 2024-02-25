@@ -69,23 +69,6 @@ export class RestAPIStack extends cdk.Stack {
         }
         );
 
-      new custom.AwsCustomResource(this, "moviesddbInitData", {
-          onCreate: {
-              service: "DynamoDB",
-              action: "batchWriteItem",
-              parameters: {
-                  RequestItems: {
-                      [moviesTable.tableName]: generateBatch(movies),
-                      [movieCastsTable.tableName]: generateBatch(movieCasts),  // Added
-                  },
-              },
-              physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), //.of(Date.now().toString()),
-          },
-          policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
-              resources: [moviesTable.tableArn, movieCastsTable.tableArn],  // Includes movie cast
-          }),
-      });
-
       const newMovieFn = new lambdanode.NodejsFunction(this, "AddMovieFn", {
           architecture: lambda.Architecture.ARM_64,
           runtime: lambda.Runtime.NODEJS_16_X,
@@ -126,6 +109,22 @@ export class RestAPIStack extends cdk.Stack {
           }
       );
 
+      new custom.AwsCustomResource(this, "moviesddbInitData", {
+          onCreate: {
+              service: "DynamoDB",
+              action: "batchWriteItem",
+              parameters: {
+                  RequestItems: {
+                      [moviesTable.tableName]: generateBatch(movies),
+                      [movieCastsTable.tableName]: generateBatch(movieCasts),  // Added
+                  },
+              },
+              physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), //.of(Date.now().toString()),
+          },
+          policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
+              resources: [moviesTable.tableArn, movieCastsTable.tableArn],  // Includes movie cast
+          }),
+      });
 
       // Permissions
       moviesTable.grantReadData(getMovieByIdFn)
@@ -133,6 +132,7 @@ export class RestAPIStack extends cdk.Stack {
       moviesTable.grantReadWriteData(newMovieFn)
       moviesTable.grantReadWriteData(deleteMovieFn)
       movieCastsTable.grantReadData(getMovieCastMembersFn);
+      movieCastsTable.grantReadWriteData(getMovieByIdFn);
 
 
 
